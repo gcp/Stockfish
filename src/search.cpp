@@ -1270,12 +1270,6 @@ moves_loop: // When in check search starts from here
               bestValue = std::max(bestValue, futilityValue);
               continue;
           }
-
-          if (futilityBase <= alpha && !pos.see_ge(move, VALUE_ZERO + 1))
-          {
-              bestValue = std::max(bestValue, futilityBase);
-              continue;
-          }
       }
 
       // Detect non-capture evasions that are candidates to be pruned
