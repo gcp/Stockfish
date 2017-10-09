@@ -188,10 +188,11 @@ void Search::init() {
       for (int d = 1; d < 64; ++d)
           for (int mc = 1; mc < 64; ++mc)
           {
-              double r = log(d) * log(mc) / 1.95;
+              double r   = 0.5436 * log(1.589 * d) * log(0.784 * mc);
+              double rPV = std::max(-0.45, (0.9 * r) - 1);
 
               Reductions[NonPV][imp][d][mc] = int(std::round(r));
-              Reductions[PV][imp][d][mc] = std::max(Reductions[NonPV][imp][d][mc] - 1, 0);
+              Reductions[PV][imp][d][mc] = int(std::round(rPV));
 
               // Increase reduction for non-PV nodes when eval is not improving
               if (!imp && Reductions[NonPV][imp][d][mc] >= 2)
@@ -991,7 +992,7 @@ moves_loop: // When in check search starts from here
                   r += ONE_PLY;
 
               // Decrease/increase reduction for moves with a good/bad history
-              r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->statScore / 20000) * ONE_PLY);
+              r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->statScore / 21500) * ONE_PLY);
           }
 
           Depth d = std::max(newDepth - r, ONE_PLY);
