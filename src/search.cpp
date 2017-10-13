@@ -540,7 +540,7 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval;
+    Value bestValue, value, ttValue, eval, evalDiff;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiets, ttCapture, pvExact;
     Piece movedPiece;
@@ -802,6 +802,7 @@ moves_loop: // When in check search starts from here
     improving =   ss->staticEval >= (ss-2)->staticEval
             /* || ss->staticEval == VALUE_NONE Already implicit in the previous condition */
                ||(ss-2)->staticEval == VALUE_NONE;
+    evalDiff = eval - alpha;
 
     singularExtensionNode =   !rootNode
                            &&  depth >= 8 * ONE_PLY
@@ -948,6 +949,14 @@ moves_loop: // When in check search starts from here
           && (!captureOrPromotion || moveCountPruning))
       {
           Depth r = reduction<PvNode>(improving, depth, moveCount);
+
+          // Futility reductions. If we are far behind, or have a good
+          // enough score even before moving, reduce more.
+          if (evalDiff < -RookValueEg) {
+              r += 2 * ONE_PLY;
+          } else if (evalDiff > PawnValueEg) {
+              r += 2 * ONE_PLY;
+          }
 
           if (captureOrPromotion)
               r -= r ? ONE_PLY : DEPTH_ZERO;
