@@ -949,8 +949,8 @@ moves_loop: // When in check search starts from here
           Depth r = reduction<PvNode>(improving, depth, moveCount);
 
           if (captureOrPromotion) {
-              if (!moveCountPruning) {
-                  r -= r ? 2 * ONE_PLY : DEPTH_ZERO;
+              if (!moveCountPruning && moveCount > 2) {
+                  r = r ? ONE_PLY : DEPTH_ZERO;
               } else {
                   r -= r ? ONE_PLY : DEPTH_ZERO;
               }
@@ -960,18 +960,6 @@ moves_loop: // When in check search starts from here
               // Decrease reduction if opponent's move count is high
               if ((ss-1)->moveCount > 15)
                   r -= ONE_PLY;
-
-              // Decrease reduction for exact PV nodes
-              if (pvExact)
-                  r -= ONE_PLY;
-
-              // Increase reduction if ttMove is a capture
-              if (ttCapture)
-                  r += ONE_PLY;
-
-              // Increase reduction for cut nodes
-              if (cutNode)
-                  r += 2 * ONE_PLY;
 
               // Decrease reduction for moves that escape a capture. Filter out
               // castling moves, because they are coded as "king captures rook" and
@@ -996,6 +984,18 @@ moves_loop: // When in check search starts from here
               // Decrease/increase reduction for moves with a good/bad history
               r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->statScore / 20000) * ONE_PLY);
           }
+
+          // Decrease reduction for exact PV nodes
+          if (pvExact)
+              r -= ONE_PLY;
+
+          // Increase reduction if ttMove is a capture
+          if (ttCapture)
+              r += ONE_PLY;
+
+          // Increase reduction for cut nodes
+          if (cutNode)
+              r += 2 * ONE_PLY;
 
           Depth d = std::max(newDepth - r, ONE_PLY);
 
