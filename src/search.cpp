@@ -991,7 +991,7 @@ moves_loop: // When in check search starts from here
 
           // Decrease reduction for exact PV nodes
           if (pvExact)
-              r -= ONE_PLY;
+              r -= r ? ONE_PLY : DEPTH_ZERO;
 
           Depth d = std::max(newDepth - r, ONE_PLY);
 
