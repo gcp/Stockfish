@@ -950,19 +950,19 @@ moves_loop: // When in check search starts from here
       {
           Depth r = reduction<PvNode>(improving, depth, moveCount);
 
-          // Futility reductions. If we are far behind, or have a good
-          // enough score even before moving, reduce more.
-          if (evalDiff < -RookValueEg) {
-              r += 2 * ONE_PLY;
-          } else if (evalDiff > PawnValueEg) {
-              r += 2 * ONE_PLY;
-          }
-
           if (captureOrPromotion)
               r -= r ? ONE_PLY : DEPTH_ZERO;
           else
           {
-              // Decrease reduction if opponent's move count is high
+              // Futility reductions. If we are far behind, or have a good
+              // enough score even before moving, reduce more.
+              if (evalDiff < -RookValueEg) {
+                  r += 2 * ONE_PLY;
+              } else if (evalDiff > PawnValueEg) {
+                  r += 2 * ONE_PLY;
+              }
+
+             // Decrease reduction if opponent's move count is high
               if ((ss-1)->moveCount > 15)
                   r -= ONE_PLY;
 
