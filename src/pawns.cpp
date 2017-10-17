@@ -84,6 +84,16 @@ namespace {
       { V(21),  V(  23), V( 116), V(41), V(15) } }
   };
 
+  const int outSideFactor[6][FILE_NB] = {
+      {  40,  40,  40,  40,  40,  40,  40,  40 }, // No pawns
+      {  48,  48,  48,  48,  48,  48,  48,  48 }, // 1 pawn
+      {  48,  48,  50,  52,  53,  55,  56,  58 }, // 2
+      {  48,  50,  52,  53,  54,  57,  58,  62 }, // 3
+      {  48,  52,  54,  55,  56,  59,  62,  64 }, // 4
+      {  48,  52,  56,  58,  64,  65,  66,  68 }  // 5 or more
+      //  0    1    2    3    4    5    6    7    file distance
+  };
+
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
   const Value MaxSafetyBonus = V(258);
@@ -103,6 +113,8 @@ namespace {
     Bitboard lever, leverPush;
     Square s;
     bool opposed, backward;
+    File leftMost  = FILE_H;
+    File rightMost = FILE_A;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
 
@@ -115,6 +127,7 @@ namespace {
     e->pawnAttacks[Us]   = shift<Right>(ourPawns) | shift<Left>(ourPawns);
     e->pawnsOnSquares[Us][BLACK] = popcount(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
+    e->outsideFactor[Us] = SCALE_FACTOR_NORMAL;
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -122,6 +135,9 @@ namespace {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
         File f = file_of(s);
+
+        leftMost  = std::min(f, leftMost);
+        rightMost = std::max(f, rightMost);
 
         e->semiopenFiles[Us]   &= ~(1 << f);
         e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
@@ -188,6 +204,11 @@ namespace {
         if (lever)
             score += Lever[relative_rank(Us, s)];
     }
+
+    int fileDistance = abs(rightMost - leftMost);
+    int pawnCount = pos.count<PAWN>(Us);
+    e->outsideFactor[Us] = ScaleFactor(
+      outSideFactor[std::min(5, pawnCount)][fileDistance]);
 
     return score;
   }

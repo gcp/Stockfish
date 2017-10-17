@@ -807,8 +807,14 @@ namespace {
         // pawns are drawish.
         else if (    abs(eg) <= BishopValueEg
                  &&  pos.count<PAWN>(strongSide) <= 2
-                 && !pos.pawn_passed(~strongSide, pos.square<KING>(~strongSide)))
+                 && !pos.pawn_passed(~strongSide, pos.square<KING>(~strongSide))) {
             return ScaleFactor(37 + 7 * pos.count<PAWN>(strongSide));
+        }
+        // Low material endings with pawns are drawish if the pawns are too close
+        // or non-drawish is there are outside passers
+        else if (    abs(eg) <= (BishopValueEg * 2 + RookValueEg)) {
+            return pe->outsideFactor[strongSide];
+        }
     }
 
     return sf;
