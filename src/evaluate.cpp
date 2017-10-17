@@ -245,9 +245,8 @@ namespace {
   const Value LazyThreshold  = Value(1500);
   const Value SpaceThreshold = Value(12222);
 
-  // Threshold where we consider outside passers
-  Value OutsideScalingMaterial = Value(2264);
-  TUNE(OutsideScalingMaterial);
+  // Threshold where we consider outside passers: 1 minor + rook or 1 queen
+  const Value OutsideScalingMaterial = QueenValueEg;
 
   // initialize() computes king and pawn attacks, and the king ring bitboard
   // for a given color. This is done at the beginning of the evaluation.
