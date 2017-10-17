@@ -246,7 +246,8 @@ namespace {
   const Value SpaceThreshold = Value(12222);
 
   // Threshold where we consider outside passers
-  const Value OutsideScalingMaterial = Value(2264);
+  Value OutsideScalingMaterial = Value(2264);
+  TUNE(OutsideScalingMaterial);
 
   // initialize() computes king and pawn attacks, and the king ring bitboard
   // for a given color. This is done at the beginning of the evaluation.

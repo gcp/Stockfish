@@ -84,15 +84,14 @@ namespace {
       { V(21),  V(  23), V( 116), V(41), V(15) } }
   };
 
-  const int outSideFactor[6][FILE_NB] = {
-      {  40,  40,  40,  40,  40,  40,  40,  40 }, // No pawns
-      {  48,  48,  48,  48,  48,  48,  48,  48 }, // 1 pawn
-      {  48,  48,  50,  52,  54,  56,  58,  60 }, // 2
-      {  48,  50,  52,  54,  56,  58,  60,  62 }, // 3
-      {  48,  52,  54,  56,  58,  60,  62,  64 }, // 4
-      {  48,  52,  56,  58,  62,  64,  66,  68 }  // 5 or more
+  int outSideFactor[][FILE_NB] = {
+      {  48,  48,  50,  52,  54,  56,  58,  60 }, // <= 2 pawns
+      {  48,  50,  52,  54,  56,  58,  60,  62 }, //    3
+      {  48,  52,  54,  56,  58,  60,  62,  64 }, //    4
+      {  48,  52,  56,  58,  62,  64,  66,  68 }  //    5 or more
       //  0    1    2    3    4    5    6    7    file distance
   };
+  TUNE(outSideFactor);
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
@@ -207,8 +206,9 @@ namespace {
 
     int fileDistance = abs(rightMost - leftMost);
     int pawnCount = pos.count<PAWN>(Us);
-    e->outsideFactor[Us] = ScaleFactor(
-      outSideFactor[std::min(5, pawnCount)][fileDistance]);
+    pawnCount = std::min(5, pawnCount);
+    pawnCount = std::max(2, pawnCount);
+    e->outsideFactor[Us] = ScaleFactor(outSideFactor[pawnCount - 2][fileDistance]);
 
     return score;
   }
