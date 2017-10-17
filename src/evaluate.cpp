@@ -245,6 +245,8 @@ namespace {
   const Value LazyThreshold  = Value(1500);
   const Value SpaceThreshold = Value(12222);
 
+  // Threshold where we consider outside passers
+  const Value OutsideScalingMaterial = Value(2264);
 
   // initialize() computes king and pawn attacks, and the king ring bitboard
   // for a given color. This is done at the beginning of the evaluation.
@@ -812,7 +814,7 @@ namespace {
         }
         // Low material endings with pawns are drawish if the pawns are too close
         // or non-drawish is there are outside passers
-        else if (    abs(eg) <= (BishopValueEg * 2 + RookValueEg)) {
+        else if (    pos.non_pawn_material(strongSide) <= OutsideScalingMaterial) {
             return pe->outsideFactor[strongSide];
         }
     }
