@@ -174,7 +174,7 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
 
 /// KP vs K. This endgame is evaluated with the help of a bitbase.
 template<>
-Value Endgame<KPK>::operator()(const Position& pos) const {
+ScaleFactor Endgame<KPK>::operator()(const Position& pos) const {
 
   assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
@@ -182,16 +182,38 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
   // Assume strongSide is white and the pawn is on files A-D
   Square wksq = normalize(pos, strongSide, pos.square<KING>(strongSide));
   Square bksq = normalize(pos, strongSide, pos.square<KING>(weakSide));
-  Square psq  = normalize(pos, strongSide, pos.square<PAWN>(strongSide));
+  Square wpsq = normalize(pos, strongSide, pos.square<PAWN>(strongSide));
 
-  Color us = strongSide == pos.side_to_move() ? WHITE : BLACK;
+  File f = file_of(wpsq);
+  Rank r = rank_of(wpsq);
+  Square queeningSq = make_square(f, RANK_8);
+  int tempo = (pos.side_to_move() == strongSide);
 
-  if (!Bitbases::probe(wksq, psq, bksq, us))
-      return VALUE_DRAW;
+  // If the pawn is not too far advanced and the defending king defends the
+  // queening square, it's probably a draw.
+  if (   r <= RANK_6
+      && distance(bksq, queeningSq) <= 1
+      && wksq <= SQ_H5)
+      return ScaleFactor(8);
 
-  Value result = VALUE_KNOWN_WIN + PawnValueEg + Value(rank_of(psq));
+  // If the defending king blocks the pawn and the attacking king is too far
+  // away, it's probably a draw.
+  if (   r <= RANK_6
+      && bksq == wpsq + NORTH
+      && distance(wksq, wpsq) - tempo >= 2)
+      return ScaleFactor(8);
 
-  return strongSide == pos.side_to_move() ? result : -result;
+  // If the pawn is not far advanced and the defending king is somewhere in
+  // the pawn's path, it's probably a draw.
+  if (r <= RANK_5 && bksq > wpsq)
+  {
+      if (file_of(bksq) == file_of(wpsq))
+          return ScaleFactor(8);
+      if (   distance<File>(bksq, wpsq) == 1
+          && distance(wksq, bksq) > 2)
+          return ScaleFactor(20 - 2 * distance(wksq, bksq));
+  }
+  return SCALE_FACTOR_ONEPAWN;
 }
 
 
@@ -784,33 +806,4 @@ ScaleFactor Endgame<KNPKB>::operator()(const Position& pos) const {
       return ScaleFactor(distance(weakKingSq, pawnSq));
 
   return SCALE_FACTOR_NONE;
-}
-
-
-/// KP vs KP. This is done by removing the weakest side's pawn and probing the
-/// KP vs K bitbase: If the weakest side has a draw without the pawn, it probably
-/// has at least a draw with the pawn as well. The exception is when the stronger
-/// side's pawn is far advanced and not on a rook file; in this case it is often
-/// possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
-template<>
-ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
-  assert(verify_material(pos, weakSide,   VALUE_ZERO, 1));
-
-  // Assume strongSide is white and the pawn is on files A-D
-  Square wksq = normalize(pos, strongSide, pos.square<KING>(strongSide));
-  Square bksq = normalize(pos, strongSide, pos.square<KING>(weakSide));
-  Square psq  = normalize(pos, strongSide, pos.square<PAWN>(strongSide));
-
-  Color us = strongSide == pos.side_to_move() ? WHITE : BLACK;
-
-  // If the pawn has advanced to the fifth rank or further, and is not a
-  // rook pawn, it's too dangerous to assume that it's at least a draw.
-  if (rank_of(psq) >= RANK_5 && file_of(psq) != FILE_A)
-      return SCALE_FACTOR_NONE;
-
-  // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
-  // it's probably at least a draw even with the pawn.
-  return Bitbases::probe(wksq, psq, bksq, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
 }
