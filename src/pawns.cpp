@@ -84,13 +84,11 @@ namespace {
       { V(21),  V(  23), V( 116), V(41), V(15) } }
   };
 
-  const int outSideFactor[6][FILE_NB] = {
-      {  40,  40,  40,  40,  40,  40,  40,  40 }, // No pawns
-      {  48,  48,  48,  48,  48,  48,  48,  48 }, // 1 pawn
-      {  48,  48,  50,  52,  54,  56,  58,  60 }, // 2
-      {  48,  50,  52,  54,  56,  58,  60,  62 }, // 3
-      {  48,  52,  54,  56,  58,  60,  62,  64 }, // 4
-      {  48,  52,  56,  58,  62,  64,  66,  68 }  // 5 or more
+  const int outSideFactor[][FILE_NB] = {
+      {  47,  51,  52,  54,  56,  58,  58,  59 }, // <= 2 pawns
+      {  47,  51,  53,  54,  57,  60,  61,  62 }, //    3
+      {  48,  52,  56,  58,  62,  62,  63,  66 }, //    4
+      {  50,  54,  56,  58,  62,  62,  68,  68 }  //    5 or more
       //  0    1    2    3    4    5    6    7    file distance
   };
 
@@ -206,9 +204,8 @@ namespace {
     }
 
     int fileDistance = abs(rightMost - leftMost);
-    int pawnCount = pos.count<PAWN>(Us);
-    e->outsideFactor[Us] = ScaleFactor(
-      outSideFactor[std::min(5, pawnCount)][fileDistance]);
+    int pawnCount = std::max(2, std::min(5, pos.count<PAWN>(Us)));
+    e->outsideFactor[Us] = ScaleFactor(outSideFactor[pawnCount - 2][fileDistance]);
 
     return score;
   }
