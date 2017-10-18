@@ -228,6 +228,8 @@ namespace {
   const Score ThreatByPawnPush    = S( 38, 22);
   const Score HinderPassedPawn    = S(  7,  0);
   const Score TrappedBishopA1H1   = S( 50, 50);
+  const Score RunningPasser       = S(  0, 50);
+  const Value FreePasser = V(1000);
 
   #undef S
   #undef V
@@ -706,6 +708,18 @@ namespace {
         // pawn push to become passed or have a pawn in front of them.
         if (!pos.pawn_passed(Us, s + Up) || (pos.pieces(PAWN) & forward_file_bb(Us, s)))
             mbonus /= 2, ebonus /= 2;
+
+        // Check for passers that will promote if we trade down
+        Square queeningSq = make_square(file_of(s), RANK_8);
+        int pawnSteps = distance(queeningSq, s);
+        int kingSteps = distance(queeningSq, pos.square<KING>(Them));
+        if (pos.side_to_move() != Us)
+            kingSteps--;
+        if (pawnSteps < kingSteps) {
+            score += RunningPasser;
+            if (!pos.non_pawn_material(Them))
+                ebonus += FreePasser;
+        }
 
         score += make_score(mbonus, ebonus) + PassedFile[file_of(s)];
     }
