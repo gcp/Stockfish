@@ -228,8 +228,8 @@ namespace {
   const Score ThreatByPawnPush    = S( 38, 22);
   const Score HinderPassedPawn    = S(  7,  0);
   const Score TrappedBishopA1H1   = S( 50, 50);
-  const Score RunningPasser       = S(  0, 50);
-  const Value FreePasser = V(1000);
+  const Score RunningPasser       = S(  0, 46);
+  const Value FreePasser          = V(963);
 
   #undef S
   #undef V
