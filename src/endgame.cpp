@@ -90,7 +90,6 @@ namespace {
 
 Endgames::Endgames() {
 
-  add<KPK>("KPK");
   add<KNNK>("KNNK");
   add<KBNK>("KBNK");
   add<KRKP>("KRKP");
@@ -170,52 +169,6 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
-
-
-/// KP vs K. This endgame is evaluated with the help of a bitbase.
-template<>
-ScaleFactor Endgame<KPK>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
-  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
-
-  // Assume strongSide is white and the pawn is on files A-D
-  Square wksq = normalize(pos, strongSide, pos.square<KING>(strongSide));
-  Square bksq = normalize(pos, strongSide, pos.square<KING>(weakSide));
-  Square wpsq = normalize(pos, strongSide, pos.square<PAWN>(strongSide));
-
-  File f = file_of(wpsq);
-  Rank r = rank_of(wpsq);
-  Square queeningSq = make_square(f, RANK_8);
-  int tempo = (pos.side_to_move() == strongSide);
-
-  // If the pawn is not too far advanced and the defending king defends the
-  // queening square, it's probably a draw.
-  if (   r <= RANK_6
-      && distance(bksq, queeningSq) <= 1
-      && wksq <= SQ_H5)
-      return ScaleFactor(8);
-
-  // If the defending king blocks the pawn and the attacking king is too far
-  // away, it's probably a draw.
-  if (   r <= RANK_6
-      && bksq == wpsq + NORTH
-      && distance(wksq, wpsq) - tempo >= 2)
-      return ScaleFactor(8);
-
-  // If the pawn is not far advanced and the defending king is somewhere in
-  // the pawn's path, it's probably a draw.
-  if (r <= RANK_5 && bksq > wpsq)
-  {
-      if (file_of(bksq) == file_of(wpsq))
-          return ScaleFactor(8);
-      if (   distance<File>(bksq, wpsq) == 1
-          && distance(wksq, bksq) > 2)
-          return ScaleFactor(20 - 2 * distance(wksq, bksq));
-  }
-  return SCALE_FACTOR_ONEPAWN;
-}
-
 
 /// KR vs KP. This is a somewhat tricky endgame to evaluate precisely without
 /// a bitbase. The function below returns drawish scores when the pawn is
