@@ -883,7 +883,15 @@ moves_loop: // When in check, search starts from here
       else if (    givesCheck // Check extension
                && !moveCountPruning
                &&  pos.see_ge(move))
+      {
           extension = ONE_PLY;
+      }
+      else if (   pos.capture(move)
+               && (  pos.count<ALL_PIECES>(WHITE)  // Capture into pawn ending
+                   + pos.count<ALL_PIECES>(BLACK) == 1))
+      {
+          extension = 3 * ONE_PLY;
+      }
 
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
