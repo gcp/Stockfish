@@ -886,7 +886,22 @@ moves_loop: // When in check, search starts from here
       else if (    givesCheck // Check extension
                && !moveCountPruning
                &&  pos.see_ge(move))
+      {
           extension = ONE_PLY;
+      }
+      else if (   pos.capture(move)
+                  // Capture into pawn ending
+               && ((  pos.count<BISHOP>(WHITE)
+                    + pos.count<KNIGHT>(WHITE)
+                    + pos.count<ROOK>(WHITE)
+                    + pos.count<QUEEN>(WHITE)
+                    + pos.count<BISHOP>(BLACK)
+                    + pos.count<KNIGHT>(BLACK)
+                    + pos.count<ROOK>(BLACK)
+                    + pos.count<QUEEN>(BLACK)) == 1))
+      {
+          extension = 3 * ONE_PLY;
+      }
 
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
