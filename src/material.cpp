@@ -197,11 +197,11 @@ Entry* probe(const Position& pos) {
       {
           // A small advantage is typically decisive in a pure pawn
           // ending.
-          e->factor[WHITE] = (uint8_t) SCALE_FACTOR_PAWNENDING;
+          e->factor[WHITE] = (uint8_t) SCALE_FACTOR_MAX;
       }
       else if (pos.count<PAWN>(BLACK) > pos.count<PAWN>(WHITE))
       {
-          e->factor[BLACK] = (uint8_t) SCALE_FACTOR_PAWNENDING;
+          e->factor[BLACK] = (uint8_t) SCALE_FACTOR_MAX;
       }
   }
 

@@ -483,7 +483,7 @@ ScaleFactor Endgame<KRPKR>::operator()(const Position& pos) const {
       && wrsq != queeningSq
       && (distance(wksq, queeningSq) < distance(bksq, queeningSq) - 2 + tempo)
       && (distance(wksq, queeningSq) < distance(bksq, wrsq) + tempo))
-      return ScaleFactor(SCALE_FACTOR_MAX - 2 * distance(wksq, queeningSq));
+      return ScaleFactor(SCALE_FACTOR_DOUBLE - 2 * distance(wksq, queeningSq));
 
   // Similar to the above, but with the pawn further back
   if (   f != FILE_A
@@ -494,7 +494,7 @@ ScaleFactor Endgame<KRPKR>::operator()(const Position& pos) const {
       && (  distance(bksq, wrsq) + tempo >= 3
           || (    distance(wksq, queeningSq) < distance(bksq, wrsq) + tempo
               && (distance(wksq, wpsq + NORTH) < distance(bksq, wrsq) + tempo))))
-      return ScaleFactor(  SCALE_FACTOR_MAX
+      return ScaleFactor(  SCALE_FACTOR_DOUBLE
                          - 8 * distance(wpsq, queeningSq)
                          - 2 * distance(wksq, queeningSq));
 
