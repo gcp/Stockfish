@@ -193,6 +193,16 @@ Entry* probe(const Position& pos) {
           e->scalingFunction[WHITE] = &ScaleKPKP[WHITE];
           e->scalingFunction[BLACK] = &ScaleKPKP[BLACK];
       }
+      else if (pos.count<PAWN>(WHITE) > pos.count<PAWN>(BLACK))
+      {
+          // A small advantage is typically decisive in a pure pawn
+          // ending.
+          e->factor[WHITE] = (uint8_t) SCALE_FACTOR_PAWN_ENDING;
+      }
+      else if (pos.count<PAWN>(BLACK) > pos.count<PAWN>(WHITE))
+      {
+          e->factor[BLACK] = (uint8_t) SCALE_FACTOR_PAWN_ENDING;
+      }
   }
 
   // Zero or just one pawn makes it difficult to win, even with a small material
