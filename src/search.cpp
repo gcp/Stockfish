@@ -54,6 +54,9 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+int tune_array[] = {234, 503, 1024, 915, 213, 20, 250, 2718, 2718, 2718};
+TUNE(tune_array, Search::init);
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -64,7 +67,7 @@ namespace {
 
   // Futility margin
   Value futility_margin(Depth d, bool improving) {
-    return Value(234 * (d - improving));
+    return Value(tune_array[0] * (d - improving));
   }
 
   // Reductions lookup table, initialized at startup
@@ -72,7 +75,7 @@ namespace {
 
   Depth reduction(bool i, Depth d, int mn) {
     int r = Reductions[d] * Reductions[mn];
-    return (r + 503) / 1024 + (!i && r > 915);
+    return (r + tune_array[1]) / tune_array[2] + (!i && r > tune_array[3]);
   }
 
   constexpr int futility_move_count(bool improving, Depth depth) {
@@ -190,10 +193,16 @@ namespace {
 
 /// Search::init() is called at startup to initialize various lookup tables
 
+float logbase(float x, float y) {
+    return std::log(x) / std::log(y/1000.0f);
+}
+
 void Search::init() {
 
   for (int i = 1; i < MAX_MOVES; ++i)
-      Reductions[i] = int((21.3 + 2 * std::log(Threads.size())) * std::log(i + 0.25 * std::log(i)));
+      Reductions[i] =
+        int((tune_array[4] / 10.0f
+              + (tune_array[5] / 10.0f) * logbase(Threads.size(), tune_array[7])) * logbase(i + (tune_array[6]/1000.0f) * logbase(i, tune_array[8]), tune_array[9]));
 }
 
 
