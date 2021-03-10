@@ -185,7 +185,7 @@ namespace Trace {
 
 using namespace Trace;
 
-int tune_array[] = {641, 682, 176};
+int tune_array[] = {641, 682, 176, 682, 1024, 2048, 28};
 TUNE(tune_array);
 
 namespace {
@@ -1056,7 +1056,11 @@ Value Eval::evaluate(const Position& pos) {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
          int mat = pos.non_pawn_material() + 2 * PawnValueMg * pos.count<PAWN>();
-         return NNUE::evaluate(pos) * (tune_array[0] + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo;
+         auto nnueEval = NNUE::evaluate(pos);
+         // Pure Quadratic scaling
+         nnueEval = ((nnueEval * nnueEval * (tune_array[4] - 1024)) / 1024) + ((nnueEval * (tune_array[5] - 1024)) / 1024);
+         // Original shift using material
+         return nnueEval * (tune_array[0] + mat / 32 - 4 * pos.rule50_count()) / 1024 + tune_array[6];
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small
@@ -1077,7 +1081,7 @@ Value Eval::evaluate(const Position& pos) {
       if (   largePsq && !strongClassical
           && (   abs(v) * 16 < tune_array[2] * r50
               || (   pos.opposite_bishops()
-                  && abs(v) * 16 < (tune_array[1] + pos.non_pawn_material() / 64) * r50
+                  && abs(v) * 16 < (tune_array[3] + pos.non_pawn_material() / 64) * r50
                   && !(pos.this_thread()->nodes & 0xB))))
           v = adjusted_NNUE();
   }
