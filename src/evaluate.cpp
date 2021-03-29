@@ -186,14 +186,18 @@ namespace Trace {
 
 using namespace Trace;
 
+//int tune_array[] = {641, 682, 176, 682, 2048, 28};
+int tune_array[] = {614, 487, 161, 824, 2121, 24};
+//TUNE(tune_array);
+
 namespace {
 
   // Threshold for lazy and space evaluation
   constexpr Value LazyThreshold1 =  Value(1565);
   constexpr Value LazyThreshold2 =  Value(1102);
   constexpr Value SpaceThreshold = Value(11551);
-  constexpr Value NNUEThreshold1 =   Value(682);
-  constexpr Value NNUEThreshold2 =   Value(176);
+  // constexpr Value NNUEThreshold1 =   Value(682);
+  // constexpr Value NNUEThreshold2 =   Value(176);
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10 };
@@ -1092,11 +1096,14 @@ Value Eval::evaluate(const Position& pos) {
       auto  adjusted_NNUE = [&]()
       {
          int material = pos.non_pawn_material() + 2 * PawnValueMg * pos.count<PAWN>();
-         int scale =  641
+         int scale =  tune_array[0]
                     + material / 32
                     - 4 * pos.rule50_count();
-
-         Value nnue = NNUE::evaluate(pos) * scale / 1024 + Tempo;
+         Value nnueEval = NNUE::evaluate(pos);
+         // Pure linear scaling
+         nnueEval = ((nnueEval * (tune_array[4] - 1024)) / 1024);
+         // Original shift using material
+         Value nnue = nnueEval * scale / 1024 + tune_array[5];
 
          if (pos.is_chess960())
              nnue += fix_FRC(pos);
@@ -1107,7 +1114,7 @@ Value Eval::evaluate(const Position& pos) {
       // If there is PSQ imbalance use classical eval, with small probability if it is small
       Value psq = Value(abs(eg_value(pos.psq_score())));
       int   r50 = 16 + pos.rule50_count();
-      bool  largePsq = psq * 16 > (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50;
+      bool  largePsq = psq * 16 > (tune_array[1] + pos.non_pawn_material() / 64) * r50;
       bool  classical = largePsq || (psq > PawnValueMg / 4 && !(pos.this_thread()->nodes & 0xB));
 
       // Use classical evaluation for really low piece endgames.
@@ -1120,9 +1127,9 @@ Value Eval::evaluate(const Position& pos) {
       // For the case of opposite colored bishops, switch to NNUE eval with
       // small probability if the classical eval is less than the threshold.
       if (   largePsq && !strongClassical
-          && (   abs(v) * 16 < NNUEThreshold2 * r50
+          && (   abs(v) * 16 < tune_array[2] * r50
               || (   pos.opposite_bishops()
-                  && abs(v) * 16 < (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50
+                  && abs(v) * 16 < (tune_array[3] + pos.non_pawn_material() / 64) * r50
                   && !(pos.this_thread()->nodes & 0xB))))
           v = adjusted_NNUE();
   }
