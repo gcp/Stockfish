@@ -143,6 +143,7 @@ namespace Stockfish::Eval::NNUE {
     // overaligning stack variables with alignas() doesn't work correctly.
 
     constexpr uint64_t alignment = CacheLineSize;
+    int delta = 7;
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned[
@@ -164,7 +165,13 @@ namespace Stockfish::Eval::NNUE {
     const auto psqt = featureTransformer->transform(pos, transformedFeatures, bucket);
     const auto positional = network[bucket]->propagate(transformedFeatures, buffer)[0];
 
-    return static_cast<Value>((psqt + positional) / OutputScale);
+    // Give more value to positional evaluation when material is balanced
+    if (   adjusted
+        && abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK))
+           <= ((PawnValueMg + RookValueMg) - BishopValueMg))
+      return  static_cast<Value>(((128 - delta) * psqt + (128 + delta) * positional) / 128 / OutputScale);
+    else
+      return static_cast<Value>((psqt + positional) / OutputScale);
   }
 
   struct NnueEvalTrace {
