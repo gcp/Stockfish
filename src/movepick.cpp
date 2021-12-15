@@ -194,7 +194,7 @@ top:
 
   case QUIET:
       if (!skipQuiets) {
-        if (seen < (1 + depth * 2)) {
+        if (seen < (2 + depth)) {
           seen++;
           if (select<Best>([&](){return   *cur != refutations[0].move
                                     && *cur != refutations[1].move
