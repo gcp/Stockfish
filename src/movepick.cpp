@@ -59,7 +59,8 @@ namespace {
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh, const LowPlyHistory* lp,
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Move cm, const Move* killers, int pl)
            : pos(p), mainHistory(mh), lowPlyHistory(lp), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d), ply(pl) {
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}},
+             seen(0), depth(d), ply(pl) {
 
   assert(d > 0);
 
@@ -70,7 +71,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 /// MovePicker constructor for quiescence search
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh,
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Square rs)
-           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d) {
+           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), ttMove(ttm),
+             seen(0), recaptureSquare(rs), depth(d) {
 
   assert(d <= 0);
 
@@ -83,7 +85,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
 /// than or equal to the given threshold.
 MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePieceToHistory* cph)
-           : pos(p), captureHistory(cph), ttMove(ttm), threshold(th) {
+           : pos(p), captureHistory(cph), ttMove(ttm), seen(0), threshold(th) {
 
   assert(!pos.checkers());
 
@@ -155,6 +157,8 @@ top:
   case EVASION_TT:
   case QSEARCH_TT:
   case PROBCUT_TT:
+      assert(!seen);
+      ++seen;
       ++stage;
       return ttMove;
 
@@ -172,9 +176,10 @@ top:
       if (select<Best>([&](){
                        return pos.see_ge(*cur, Value(-69 * cur->value / 1024)) ?
                               // Move losing capture to endBadCaptures to be tried later
-                              true : (*endBadCaptures++ = *cur, false); }))
+                              true : (*endBadCaptures++ = *cur, false); })) {
+          ++seen;
           return *(cur - 1);
-
+      }
       // Prepare the pointers to loop over the refutations array
       cur = std::begin(refutations);
       endMoves = std::end(refutations);
@@ -190,8 +195,10 @@ top:
   case REFUTATION:
       if (select<Next>([&](){ return    *cur != MOVE_NONE
                                     && !pos.capture(*cur)
-                                    &&  pos.pseudo_legal(*cur); }))
+                                    &&  pos.pseudo_legal(*cur); })) {
+          ++seen;
           return *(cur - 1);
+      }
       ++stage;
       [[fallthrough]];
 
@@ -202,7 +209,7 @@ top:
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -3000 * depth);
+          partial_insertion_sort(cur, endMoves, -3000 * (depth - seen));
       }
 
       ++stage;
