@@ -62,8 +62,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              Move cm,
                                                              const Move* killers)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
-{
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}},
+             haveSorted(false), depth(d) {
   assert(d > 0);
 
   stage = (pos.checkers() ? EVASION_TT : MAIN_TT) +
@@ -75,7 +75,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Square rs)
-           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d)
+           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
+             ttMove(ttm), haveSorted(false), recaptureSquare(rs), depth(d)
 {
   assert(d <= 0);
 
@@ -88,7 +89,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
 /// than or equal to the given threshold.
 MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePieceToHistory* cph)
-           : pos(p), captureHistory(cph), ttMove(ttm), threshold(th)
+           : pos(p), captureHistory(cph), ttMove(ttm), haveSorted(false), threshold(th)
 {
   assert(!pos.checkers());
 
@@ -150,7 +151,7 @@ Move MovePicker::select(Pred filter) {
 /// MovePicker::next_move() is the most important method of the MovePicker class. It
 /// returns a new pseudo-legal move every time it is called until there are no more
 /// moves left, picking the move with the highest score from a list of generated moves.
-Move MovePicker::next_move(bool skipQuiets) {
+Move MovePicker::next_move(int moveCount, int skipQuietsFrom) {
 
 top:
   switch (stage) {
@@ -200,25 +201,37 @@ top:
       [[fallthrough]];
 
   case QUIET_INIT:
-      if (!skipQuiets)
+      if (moveCount < skipQuietsFrom)
       {
           cur = endBadCaptures;
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -3000 * depth);
+          // Are we going to search enough moves to bother?
+          if (moveCount + 2 < skipQuietsFrom) {
+            partial_insertion_sort(cur, endMoves, -3000 * depth);
+            haveSorted = true;
+          }
       }
 
       ++stage;
       [[fallthrough]];
 
   case QUIET:
-      if (   !skipQuiets
-          && select<Next>([&](){return   *cur != refutations[0].move
+      if (moveCount < skipQuietsFrom) {
+        if (haveSorted) {
+           if (select<Next>([&](){return *cur != refutations[0].move
                                       && *cur != refutations[1].move
                                       && *cur != refutations[2].move;}))
-          return *(cur - 1);
-
+            return *(cur - 1);
+        } else {
+          // Didn't bother to sort in advance, have to search best move.
+          if (select<Best>([&](){return *cur != refutations[0].move
+                                     && *cur != refutations[1].move
+                                     && *cur != refutations[2].move;}))
+            return *(cur - 1);
+        }
+      }
       // Prepare the pointers to loop over the bad captures
       cur = moves;
       endMoves = endBadCaptures;

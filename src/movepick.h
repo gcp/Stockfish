@@ -127,7 +127,8 @@ public:
                                            const PieceToHistory**,
                                            Square);
   MovePicker(const Position&, Move, Value, const CapturePieceToHistory*);
-  Move next_move(bool skipQuiets = false);
+  Move next_move(int moveCount = 0,
+                 int skipQuietsFrom = std::numeric_limits<int>::max());
 
 private:
   template<PickType T, typename Pred> Move select(Pred);
@@ -142,6 +143,7 @@ private:
   Move ttMove;
   ExtMove refutations[3], *cur, *endMoves, *endBadCaptures;
   int stage;
+  bool haveSorted;
   Square recaptureSquare;
   Value threshold;
   Depth depth;
