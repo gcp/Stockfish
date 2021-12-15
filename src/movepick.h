@@ -138,7 +138,8 @@ public:
   Move next_move(bool skipQuiets = false);
 
 private:
-  template<PickType T, typename Pred> Move select(Pred);
+  template<PickType T, typename Pred> Move
+    select(Pred, int limit = std::numeric_limits<int>::min());
   template<GenType> void score();
   ExtMove* begin() { return cur; }
   ExtMove* end() { return endMoves; }

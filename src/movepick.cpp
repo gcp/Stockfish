@@ -25,27 +25,13 @@ namespace Stockfish {
 namespace {
 
   enum Stages {
-    MAIN_TT, CAPTURE_INIT, GOOD_CAPTURE, REFUTATION, QUIET_INIT, QUIET, BAD_CAPTURE,
+    MAIN_TT, CAPTURE_INIT, GOOD_CAPTURE, REFUTATION,
+    QUIET_INIT, QUIET_PICK, QUIET_RANDOM,
+    BAD_CAPTURE,
     EVASION_TT, EVASION_INIT, EVASION,
     PROBCUT_TT, PROBCUT_INIT, PROBCUT,
     QSEARCH_TT, QCAPTURE_INIT, QCAPTURE, QCHECK_INIT, QCHECK
   };
-
-  // partial_insertion_sort() sorts moves in descending order up to and including
-  // a given limit. The order of moves smaller than the limit is left unspecified.
-  void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
-
-    for (ExtMove *sortedEnd = begin, *p = begin + 1; p < end; ++p)
-        if (p->value >= limit)
-        {
-            ExtMove tmp = *p, *q;
-            *p = *++sortedEnd;
-            for (q = sortedEnd; q != begin && *(q - 1) < tmp; --q)
-                *q = *(q - 1);
-            *q = tmp;
-        }
-  }
-
 } // namespace
 
 
@@ -128,12 +114,16 @@ void MovePicker::score() {
 /// MovePicker::select() returns the next move satisfying a predicate function.
 /// It never returns the TT move.
 template<MovePicker::PickType T, typename Pred>
-Move MovePicker::select(Pred filter) {
+Move MovePicker::select(Pred filter, int limit) {
 
   while (cur < endMoves)
   {
-      if (T == Best)
+      if (T == Best) {
           std::swap(*cur, *std::max_element(cur, endMoves));
+
+          if (cur->value < limit)
+              return MOVE_NONE;
+      }
 
       if (*cur != ttMove && filter())
           return *cur++;
@@ -202,13 +192,23 @@ top:
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -3000 * depth);
       }
 
       ++stage;
       [[fallthrough]];
 
-  case QUIET:
+  case QUIET_PICK:
+      if (   !skipQuiets
+          && select<Best>([&](){return   *cur != refutations[0].move
+                                      && *cur != refutations[1].move
+                                      && *cur != refutations[2].move;},
+                                      -3000 * depth))
+          return *(cur - 1);
+
+      ++stage;
+      [[fallthrough]];
+
+  case QUIET_RANDOM:
       if (   !skipQuiets
           && select<Next>([&](){return   *cur != refutations[0].move
                                       && *cur != refutations[1].move
