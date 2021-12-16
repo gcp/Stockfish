@@ -167,13 +167,13 @@ namespace Stockfish::Eval::NNUE {
     const auto matdiff = abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK));
     int delta = 0;
     if (matdiff > PawnValueMg * 3 && matdiff <= (RookValueMg - BishopValueMg)) {
-      delta = 2;
+      delta = 3;
     } else if (matdiff >= PawnValueMg * 2 && matdiff < PawnValueMg * 3) {
-      delta = 4;
+      delta = 5;
     } else if (matdiff >= PawnValueMg     && matdiff < PawnValueMg * 2) {
-      delta = 6;
+      delta = 7;
     } else {
-      delta = 8;
+      delta = 7;
     }
 
     // Give more value to positional evaluation when material is balanced
