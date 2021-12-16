@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstring>   // For std::memset
 #include <iostream>
+#include <limits>
 #include <sstream>
 
 #include "evaluate.h"
@@ -590,10 +591,11 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
-    bool captureOrPromotion, doFullDepthSearch, moveCountPruning,
+    bool captureOrPromotion, doFullDepthSearch,
          ttCapture, singularQuietLMR;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, bestMoveCount, improvement;
+    int moveCount, moveCountPruning, captureCount, quietCount,
+        bestMoveCount, improvement;
 
     // Step 1. Initialize node
     ss->inCheck        = pos.checkers();
@@ -982,7 +984,8 @@ moves_loop: // When in check, search starts here
                                       ss->ply);
 
     value = bestValue;
-    singularQuietLMR = moveCountPruning = false;
+    singularQuietLMR = false;
+    moveCountPruning = std::numeric_limits<int>::max();
 
     // Indicate PvNodes that will probably fail low if the node was searched
     // at a depth equal or greater than the current depth, and the result of this search was a fail low.
@@ -993,7 +996,7 @@ moves_loop: // When in check, search starts here
 
     // Step 12. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
-    while ((move = mp.next_move(moveCountPruning)) != MOVE_NONE)
+    while ((move = mp.next_move(moveCount, moveCountPruning)) != MOVE_NONE)
     {
       assert(is_ok(move));
 
@@ -1035,7 +1038,7 @@ moves_loop: // When in check, search starts here
           && bestValue > VALUE_TB_LOSS_IN_MAX_PLY)
       {
           // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
-          moveCountPruning = moveCount >= futility_move_count(improving, depth);
+          moveCountPruning = futility_move_count(improving, depth);
 
           // Reduced depth of the next LMR search
           int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount, rangeReduction > 2), 0);
