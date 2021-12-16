@@ -60,7 +60,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Move cm, const Move* killers, int pl)
            : pos(p), mainHistory(mh), lowPlyHistory(lp), captureHistory(cph), continuationHistory(ch),
              ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}},
-             haveSorted(false), depth(d), ply(pl) {
+             depth(d), ply(pl) {
 
   assert(d > 0);
 
@@ -72,7 +72,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh,
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Square rs)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), haveSorted(false), recaptureSquare(rs), depth(d) {
+             ttMove(ttm), recaptureSquare(rs), depth(d) {
 
   assert(d <= 0);
 
@@ -85,7 +85,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
 /// than or equal to the given threshold.
 MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePieceToHistory* cph)
-           : pos(p), captureHistory(cph), ttMove(ttm), haveSorted(false),
+           : pos(p), captureHistory(cph), ttMove(ttm),
              threshold(th) {
 
   assert(!pos.checkers());
@@ -204,11 +204,14 @@ top:
           cur = endBadCaptures;
           endMoves = generate<QUIETS>(pos, cur);
 
-          score<QUIETS>();
-          // Are we going to search enough moves to bother?
-          if (moveCount + 2 < skipQuietsFrom) {
+          // Either we're going to search only a few moves, in
+          // which case we'll order and pick, or we're going
+          // to search all, in case we don't bother. We expect
+          // to search a few when we didn't have a chance to get
+          // a cutoff yet, or when move count pruning is tight.
+          if (moveCount <= 2 || moveCount + 8 > skipQuietsFrom) {
+            score<QUIETS>();
             partial_insertion_sort(cur, endMoves, -3000 * depth);
-            haveSorted = true;
           }
       }
 
@@ -216,20 +219,12 @@ top:
       [[fallthrough]];
 
   case QUIET:
-      if (moveCount < skipQuietsFrom) {
-        if (haveSorted) {
-           if (select<Next>([&](){return *cur != refutations[0].move
-                                      && *cur != refutations[1].move
-                                      && *cur != refutations[2].move;}))
+      if (moveCount < skipQuietsFrom
+          && select<Next>([&](){return *cur != refutations[0].move
+                                    && *cur != refutations[1].move
+                                    && *cur != refutations[2].move;}))
             return *(cur - 1);
-        } else {
-          // Didn't bother to sort in advance, have to search best move.
-          if (select<Best>([&](){return *cur != refutations[0].move
-                                     && *cur != refutations[1].move
-                                     && *cur != refutations[2].move;}))
-            return *(cur - 1);
-        }
-      }
+
       // Prepare the pointers to loop over the bad captures
       cur = moves;
       endMoves = endBadCaptures;
