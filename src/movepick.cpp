@@ -206,7 +206,7 @@ top:
 
           score<QUIETS>();
           // Are we going to search enough moves to bother?
-          if (moveCount + 2 < skipQuietsFrom) {
+          if (moveCount + 3 < skipQuietsFrom) {
             partial_insertion_sort(cur, endMoves, -3000 * depth);
             haveSorted = true;
           }
