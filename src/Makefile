@@ -304,7 +304,7 @@ endif
 
 ifeq ($(COMP),gcc)
 	comp=gcc
-	CXX=g++
+	CXX=g++-12
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
 	ifeq ($(arch),$(filter $(arch),armv7 armv8))
