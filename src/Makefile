@@ -750,7 +750,7 @@ net:
 	$(eval nnuenet := $(shell grep EvalFileDefaultName evaluate.h | grep define | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/'))
 	@echo "Default net: $(nnuenet)"
 	$(eval nnuedownloadurl := https://tests.stockfishchess.org/api/nn/$(nnuenet))
-	$(eval curl_or_wget := $(shell scp morbo@192.168.2.12:~/git/stockfish/src/nn-9bd37fe9ac6c.nnue .))
+	$(eval curl_or_wget := $(shell scp morbo@192.168.2.12:~/git/stockfish/src/nn-77dada6af53f.nnue .))
 	@if test -f "$(nnuenet)"; then \
             echo "Already available."; \
          else \
